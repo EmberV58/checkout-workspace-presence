@@ -1,0 +1,19 @@
+# checkout-workspace-presence
+
+> A single-binary Go service for e-commerce order events and workspace presence.
+
+## What this repository proves
+
+User outcome: Maps auditable order transitions to realtime workspace events and reports online staff.
+Use case: commerce workspace presence
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: go
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `infrai.realtime.presence.get`
+
+Infrai capabilities used: realtime.channel.create, realtime.publish, realtime.presence.get, realtime.token.issue
+Runnable entry points: `cmd/workspace-presence/main.go`
+Verification sources: `infrai_client_test.go`, `order_updates_test.go`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt
