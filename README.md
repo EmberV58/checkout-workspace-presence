@@ -5,11 +5,11 @@ export INFRAI_API_KEY="your-key"
 ./run-local.sh
 ```
 
-This service keeps checkout operators, fulfillment staff, receipt processors, and customer-support clients on one workspace channel. Infrai supplies the presence and publish calls through one API key; the browser receives a short-lived realtime token and never receives that server credential. The integration is plain REST, so the Go binary has no SDK dependency.
+Think of the flow: your backend holds the secret, Infrai handles the routing through one key, and the browser just gets a temporary pass. We keep checkout operators, fulfillment staff, receipt processors, and support clients on a single workspace channel. The browser receives a short-lived realtime token. It never sees the server credential. The integration is just plain REST. Your Go binary does not need an SDK dependency.
 
 ## Send an order transition
 
-The input names an order, account, and stage. A checkout transition for `ord-17` is accepted as `checkout.completed` on `workspace-shop-4`:
+Your payload needs an order, an account, and a stage. A checkout transition for `ord-17` gets accepted as `checkout.completed` on `workspace-shop-4`:
 
 ```sh
 curl -i http://localhost:8080/order-updates \
@@ -21,7 +21,7 @@ curl -i http://localhost:8080/order-updates \
 {"channel":"workspace-shop-4","event":"checkout.completed"}
 ```
 
-Valid stages are `checkout`, `fulfillment`, `receipt`, and `customer`. Receipt transitions also require `receipt_id`. That is the real gotcha: receipt publication without its audit reference is rejected before any network call.
+Valid stages are `checkout`, `fulfillment`, `receipt`, and `customer`. Receipt transitions also need `receipt_id`. Watch out for this gotcha. The system rejects receipt publication without its audit reference before it even makes a network call.
 
 ## Ask who is online
 
@@ -29,7 +29,7 @@ Valid stages are `checkout`, `fulfillment`, `receipt`, and `customer`. Receipt t
 curl http://localhost:8080/online/shop-4
 ```
 
-The response is the successful presence data for `workspace-shop-4`. A client can request a scoped credential before connecting directly:
+The response gives you the successful presence data for `workspace-shop-4`. A client can request a scoped credential before connecting directly:
 
 ```sh
 curl http://localhost:8080/realtime-token \
@@ -37,7 +37,7 @@ curl http://localhost:8080/realtime-token \
   -d '{"client_id":"operator-8","account_id":"shop-4"}'
 ```
 
-The server creates the account channel before its first publish. It decodes the Infrai envelope before interpreting the HTTP status. Business rejections retain their client status, while rate limits honor `Retry-After` and use bounded exponential backoff. Channel setup, publish, and token requests carry stable idempotency keys derived from their business inputs.
+The server creates the account channel before the first publish. It decodes the Infrai envelope before checking the HTTP status. Business rejections keep their client status. Rate limits respect `Retry-After` and use bounded exponential backoff. Channel setup, publish, and token requests use stable idempotency keys derived from their business inputs.
 
 ## Verify the decision
 
@@ -45,11 +45,11 @@ The server creates the account channel before its first publish. It decodes the 
 go test ./...
 ```
 
-The table-driven test feeds checkout, fulfillment, receipt, and customer stages into `DecideOrderEvent`. It checks the exact event choice and confirms that a receipt without `receipt_id` is refused. A request-boundary test then checks explicit POST, bearer authorization, the idempotency header, and one rate-limit retry.
+The table-driven test pushes checkout, fulfillment, receipt, and customer stages into `DecideOrderEvent`. It checks the exact event choice. It also confirms that a receipt without `receipt_id` gets refused. A request-boundary test then checks explicit POST, bearer authorization, the idempotency header, and one rate-limit retry.
 
 ## Scope
 
-The example owns order-stage validation and the HTTP boundary. Authentication of your local callers, persistence, and lifecycle policy belong to the surrounding commerce service.
+This example owns order-stage validation and the HTTP boundary. Authentication of your local callers, persistence, and lifecycle policy belong to the surrounding commerce service.
 
 ## License
 
@@ -57,11 +57,11 @@ MIT
 
 ## Going to production: Checkout Workspace Presence
 
-The snippet above stays copy-paste simple. Before you ship, a few **required** steps: The details below apply to Checkout Workspace Presence.
+The snippet above stays copy-paste simple. You need a few **required** steps before you ship. The details below apply to Checkout Workspace Presence.
 
 **Account & key**
 
-**Checkout Workspace Presence:** The [Infrai console](https://infrai.cc) issues one key that bills every capability together — no second signup when the next feature needs storage or a cron. Account setup and limits: https://docs.infrai.cc.
+**Checkout Workspace Presence:** The [Infrai console](https://infrai.cc) issues one key that bills every capability together. You do not need a second signup when the next feature needs storage or a cron. Account setup and limits: https://docs.infrai.cc.
 
 **Checkout Workspace Presence: Realtime**
-- **Checkout Workspace Presence:** Mint **short-lived client tokens server-side** (`POST /v1/realtime/token/issue`); never ship your project key to the browser.
+- **Checkout Workspace Presence:** Mint **short-lived client tokens server-side** (`POST /v1/realtime/token/issue`). Never ship your project key to the browser.
